@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background: url("../static/background-image.png") no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Poppins', sans-serif;
+      color: white;
+    }
+    .dashboard {
+      max-width: 800px;
+      margin: 40px auto;
+      background: rgba(122, 120, 120, 0.384);
+      border-radius: 10px;
+      padding: 30px;
+      backdrop-filter: blur(6px);
+    }
+    .dashboard h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .user-details ul {
+      list-style: none;
+      padding: 0;
+    }
+    .user-details li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .logout-btn {
+      float: right;
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .logout-btn:hover {
+      background-color: #c62828;
+    }
+    .message {
+      margin: 20px 0;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .success {
+      background-color: rgba(46, 125, 50, 0.2);
+      border: 1px solid #2e7d32;
+      color: #a5d6a7;
+    }
+    .error {
+      background-color: rgba(198, 40, 40, 0.2);
+      border: 1px solid #c62828;
+      color: #ef9a9a;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div>
+      <button class="logout-btn" onclick="window.location.href='{{ url_for('logout') }}'">Logout</button>
+      <h2>Welcome, {{ profile.name }}</h2>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="message {{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="user-details">
+      <ul>
+        <li><strong>Email:</strong> {{ profile.email or 'Not provided' }}</li>
+        <li><strong>Phone:</strong> {{ profile.phone or 'Not provided' }}</li>
+        <li><strong>DOB:</strong> {{ profile.dob or 'Not provided' }}</li>
+        <li><strong>Gender:</strong> {{ profile.gender or 'Not provided' }}</li>
+        <li><strong>Place:</strong> {{ profile.place or 'Not provided' }}</li>
+        <li><strong>Position:</strong> {{ profile.position or 'Not provided' }}</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

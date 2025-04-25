@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Details</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background: url("../static/background-image.png") no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Poppins', sans-serif;
+      color: white;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 30px;
+      backdrop-filter: blur(6px);
+    }
+    .container h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .back-btn {
+      display: inline-block;
+      margin-top: 20px;
+      background-color: #2196F3;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      background-color: #1976D2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>User Details</h2>
+    <ul>
+      <li><strong>Username:</strong> {{ profile.username }}</li>
+      <li><strong>Name:</strong> {{ profile.name }}</li>
+      <li><strong>Email:</strong> {{ profile.email }}</li>
+      <li><strong>Phone:</strong> {{ profile.phone }}</li>
+      <li><strong>DOB:</strong> {{ profile.dob }}</li>
+      <li><strong>Gender:</strong> {{ profile.gender }}</li>
+      <li><strong>Place:</strong> {{ profile.place }}</li>
+      <li><strong>Position:</strong> {{ profile.position }}</li>
+      <li><strong>Role:</strong> {{ profile.role }}</li>
+    </ul>
+    <a href="{{ url_for('admin_dashboard') }}" class="back-btn">Back to Dashboard</a>
+  </div>
+</body>
+</html>

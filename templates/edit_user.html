@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit User</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background: url("../static/background-image.png") no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Poppins', sans-serif;
+      color: white;
+    }
+    .edit-container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: rgba(122, 120, 120, 0.384);
+      padding: 30px;
+      border-radius: 10px;
+      backdrop-filter: blur(6px);
+    }
+    .edit-container h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    .btn {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="edit-container">
+    <h2>Edit User: {{ user['username'] if 'username' in user else user['USERNAME'] }}</h2>
+    <form method="POST">
+      <label>Name:</label>
+      <input type="text" name="name" value="{{ user['name'] or user['NAME'] }}" required>
+
+      <label>Email:</label>
+      <input type="email" name="email" value="{{ user['email'] or user['EMAIL'] }}" required>
+
+      <label>Phone:</label>
+      <input type="text" name="phone" value="{{ user['phone'] or user['PHONE'] }}" required>
+
+      <label>DOB:</label>
+      <input type="date" name="dob" value="{{ user['dob'] or user['DOB'] }}" required>
+
+      <label>Gender:</label>
+      <input type="text" name="gender" value="{{ user['gender'] or user['GENDER'] }}" required>
+
+      <label>Place:</label>
+      <input type="text" name="place" value="{{ user['place'] or user['PLACE'] }}" required>
+
+      <label>Position:</label>
+      <input type="text" name="position" value="{{ user['position'] or user['POSITION'] }}" required>
+
+      <label>Role:</label>
+      <input type="text" name="role" value="{{ user['role'] or user['ROLE'] }}" required>
+
+      <button type="submit" class="button-green-small" style="margin-top: 10px;">Update User</button>
+
+    </form>
+  </div>
+</body>
+</html>

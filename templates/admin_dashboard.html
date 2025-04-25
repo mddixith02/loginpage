@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <style>
+    body {
+      background: url("../static/background-image.png") no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Poppins', sans-serif;
+    }
+    .admin-container {
+      width: 90%;
+      max-width: 1200px;
+      margin: 30px auto;
+      background: rgba(122, 120, 120, 0.384);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 30px;
+      backdrop-filter: blur(8px);
+    }
+    .form-group label {
+      color: white;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    .message {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .success {
+      background: rgba(46, 125, 50, 0.2);
+      color: #a5d6a7;
+      border: 1px solid #2e7d32;
+    }
+    .error {
+      background: rgba(198, 40, 40, 0.2);
+      color: #ef9a9a;
+      border: 1px solid #c62828;
+    }
+    .user-list table {
+      width: 100%;
+      color: white;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    .user-list th, .user-list td {
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .delete-btn {
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.3s;
+    }
+    .delete-btn:hover {
+      background: #c62828;
+    }
+    .logout-btn {
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      float: right;
+    }
+
+    .toggle-btn {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    .toggle-btn:hover {
+      background-color: #125ea9;
+    }
+
+    .collapsible-form {
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .btn.green-btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn.green-btn:hover {
+      background-color: #388e3c;
+    }
+  </style>
+</head>
+<body>
+<div class="admin-container">
+  <div class="header">
+    <h1 style="color: white;">Admin Dashboard</h1>
+    <button class="logout-btn" onclick="window.location.href='{{ url_for('logout') }}'">Logout</button>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="message {% if category == 'error' %}error{% else %}success{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <h2 style="color: white; margin-top: 30px;">Add New User</h2>
+  <button class="toggle-btn" onclick="toggleForm()">+ Add User</button>
+
+  <div id="user-form-container" class="collapsible-form" style="display: none;">
+    <form action="{{ url_for('add_user_route') }}" method="POST">
+      <div class="form-group"><label>Username:</label><input type="text" name="username" required></div>
+      <div class="form-group"><label>Password:</label><input type="text" name="password" required></div>
+      <div class="form-group"><label>Name:</label><input type="text" name="name" required></div>
+      <div class="form-group"><label>Email:</label><input type="email" name="email" required></div>
+      <div class="form-group"><label>Phone:</label><input type="text" name="phone" required></div>
+      <div class="form-group"><label>DOB:</label><input type="date" name="dob" required></div>
+      <div class="form-group"><label>Gender:</label><input type="text" name="gender" required></div>
+      <div class="form-group"><label>Place:</label><input type="text" name="place" required></div>
+      <div class="form-group"><label>Position:</label><input type="text" name="position" required></div>
+      <div class="form-group"><label>Role:</label><input type="text" name="role" value="user" required></div>
+      <button type="submit" class="btn green-btn">Add User</button>
+    </form>
+  </div>
+
+  <div class="user-list">
+    <h2 style="color: white; margin-top: 40px;">Registered Users</h2>
+    <table>
+      <tr>
+        <th>Username</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Action</th>
+      </tr>
+      {% for user in users %}
+      <tr>
+        <td>{{ user['username'] if 'username' in user else user['USERNAME'] }}</td>
+        <td>{{ user['name'] if 'name' in user else user['NAME'] }}</td>
+        <td>{{ user['email'] if 'email' in user else user['EMAIL'] }}</td>
+        <td>
+          <form id="delete-form-{{ user['username'] if 'username' in user else user['USERNAME'] }}" action="{{ url_for('delete_user_route', username=(user['username'] if 'username' in user else user['USERNAME'])) }}" method="POST" style="display:inline;">
+            <button type="button" class="delete-btn" onclick="confirmDelete('{{ user['username'] if 'username' in user else user['USERNAME'] }}')">Delete</button>
+          </form>
+          <a href="{{ url_for('edit_user_route', username=(user['username'] if 'username' in user else user['USERNAME'])) }}"
+   class="green-btn" style="margin-left: 5px;">Edit</a>
+
+<a href="{{ url_for('view_user', username=(user['username'] if 'username' in user else user['USERNAME'])) }}"
+   class="blue-btn" style="margin-left: 5px;">View Details</a>
+
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<script>
+  function toggleForm() {
+    const form = document.getElementById('user-form-container');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function confirmDelete(username) {
+    if (confirm(`Are you sure you want to delete user: ${username}? This will also delete their feedback.`)) {
+      document.getElementById('delete-form-' + username).submit();
+    }
+  }
+</script>
+</body>
+</html>
