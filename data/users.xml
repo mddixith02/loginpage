@@ -1,0 +1,1 @@
+<users><user><id>1</id><username>admin</username><password>scrypt:32768:8:1$cGJzYyto5mUwWCuP$66587f7f3781ca743b0b90b3dfade435b10108746a81e84f4206234a3eeda6e571e645f65b8b7b282ca4bf1367adee5403d45b8d8930feb695baa0a5e268210c</password><role>admin</role></user></users>
