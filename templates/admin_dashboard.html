@@ -52,13 +52,14 @@
       color: #ef9a9a;
       border: 1px solid #c62828;
     }
-    .user-list table {
+    .user-list table, .feedback-section table {
       width: 100%;
       color: white;
       margin-top: 10px;
       border-collapse: collapse;
     }
-    .user-list th, .user-list td {
+    .user-list th, .user-list td,
+    .feedback-section th, .feedback-section td {
       padding: 8px 12px;
       border: 1px solid rgba(255,255,255,0.2);
     }
@@ -85,7 +86,6 @@
       font-weight: bold;
       float: right;
     }
-
     .toggle-btn {
       background-color: #1976d2;
       color: white;
@@ -98,18 +98,15 @@
       font-weight: 600;
       transition: background-color 0.3s ease;
     }
-
     .toggle-btn:hover {
       background-color: #125ea9;
     }
-
     .collapsible-form {
       background-color: rgba(255, 255, 255, 0.05);
       padding: 20px;
       border-radius: 10px;
       margin-bottom: 20px;
     }
-
     .btn.green-btn {
       background-color: #4CAF50;
       color: white;
@@ -120,9 +117,32 @@
       cursor: pointer;
       font-weight: bold;
     }
-
     .btn.green-btn:hover {
       background-color: #388e3c;
+    }
+    .blue-btn {
+      background-color: #1e88e5;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    
+    .blue-btn:hover {
+      background-color: #1565c0;
     }
   </style>
 </head>
@@ -136,9 +156,11 @@
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
-        <div class="message {% if category == 'error' %}error{% else %}success{% endif %}">
-          {{ message }}
-        </div>
+        {% if message != 'Deleted user' %}
+          <div class="message {% if category == 'error' %}error{% else %}success{% endif %}">
+            {{ message }}
+          </div>
+        {% endif %}
       {% endfor %}
     {% endif %}
   {% endwith %}
@@ -154,7 +176,15 @@
       <div class="form-group"><label>Email:</label><input type="email" name="email" required></div>
       <div class="form-group"><label>Phone:</label><input type="text" name="phone" required></div>
       <div class="form-group"><label>DOB:</label><input type="date" name="dob" required></div>
-      <div class="form-group"><label>Gender:</label><input type="text" name="gender" required></div>
+      <div class="form-group">
+        <label>Gender:</label>
+        <select name="gender" required>
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
       <div class="form-group"><label>Place:</label><input type="text" name="place" required></div>
       <div class="form-group"><label>Position:</label><input type="text" name="position" required></div>
       <div class="form-group"><label>Role:</label><input type="text" name="role" value="user" required></div>
@@ -180,15 +210,40 @@
           <form id="delete-form-{{ user['username'] if 'username' in user else user['USERNAME'] }}" action="{{ url_for('delete_user_route', username=(user['username'] if 'username' in user else user['USERNAME'])) }}" method="POST" style="display:inline;">
             <button type="button" class="delete-btn" onclick="confirmDelete('{{ user['username'] if 'username' in user else user['USERNAME'] }}')">Delete</button>
           </form>
-          <a href="{{ url_for('edit_user_route', username=(user['username'] if 'username' in user else user['USERNAME'])) }}"
-   class="green-btn" style="margin-left: 5px;">Edit</a>
-
-<a href="{{ url_for('view_user', username=(user['username'] if 'username' in user else user['USERNAME'])) }}"
-   class="blue-btn" style="margin-left: 5px;">View Details</a>
-
+          <a href="{{ url_for('edit_user_route', username=(user['username'] if 'username' in user else user['USERNAME'])) }}" class="green-btn" style="margin-left: 5px;">Edit</a>
+          <a href="{{ url_for('view_user', username=(user['username'] if 'username' in user else user['USERNAME'])) }}" class="blue-btn" style="margin-left: 5px;">View Details</a>
         </td>
       </tr>
       {% endfor %}
+    </table>
+  </div>
+
+  <div class="feedback-section">
+    <h2 style="color: white; margin-top: 40px;">User Feedback</h2>
+    <table>
+      <tr>
+        <th>Email</th>
+        <th>Feedback</th>
+        <th>Timestamp</th>
+        <th>Action</th>
+      </tr>
+      {% for feedback in feedbacks %}
+      <tr>
+        <td>{{ feedback.email }}</td>
+        <td>{{ feedback.content }}</td>
+        <td>{{ feedback.timestamp }}</td>
+        <td>
+          <form id="delete-feedback-form-{{ loop.index }}" action="{{ url_for('delete_feedback', feedback_index=loop.index - 1) }}" method="POST" style="display:inline;">
+            <button type="button" class="delete-btn" onclick="confirmDeleteFeedback({{ loop.index }})">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not feedbacks %}
+      <tr>
+        <td colspan="4" style="text-align: center;">No feedback submitted yet</td>
+      </tr>
+      {% endif %}
     </table>
   </div>
 </div>
@@ -202,6 +257,12 @@
   function confirmDelete(username) {
     if (confirm(`Are you sure you want to delete user: ${username}? This will also delete their feedback.`)) {
       document.getElementById('delete-form-' + username).submit();
+    }
+  }
+  
+  function confirmDeleteFeedback(index) {
+    if (confirm('Are you sure you want to delete this feedback?')) {
+      document.getElementById('delete-feedback-form-' + index).submit();
     }
   }
 </script>
