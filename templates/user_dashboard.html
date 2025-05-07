@@ -61,6 +61,72 @@
       border: 1px solid #c62828;
       color: #ef9a9a;
     }
+    .feedback-form {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    .feedback-form h3 {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input[type="email"],
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background-color: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .submit-btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      display: block;
+      margin: 0 auto;
+    }
+    .submit-btn:hover {
+      background-color: #388e3c;
+    }
+    .feedback-list {
+      margin-top: 30px;
+    }
+    .feedback-list h3 {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .feedback-item {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .feedback-content {
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+    .feedback-timestamp {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -90,6 +156,35 @@
         <li><strong>Position:</strong> {{ profile.position or 'Not provided' }}</li>
       </ul>
     </div>
+
+    <!-- Feedback Form -->
+    <div class="feedback-form">
+      <h3>Submit Feedback</h3>
+      <form action="{{ url_for('submit_feedback') }}" method="POST">
+        <div class="form-group">
+          <label for="email">Email (Optional):</label>
+          <input type="email" id="email" name="email" placeholder="Anonymous feedback if left blank" value="{{ profile.email }}">
+        </div>
+        <div class="form-group">
+          <label for="feedback">Your Feedback:</label>
+          <textarea id="feedback" name="feedback" placeholder="Enter your feedback here..." required></textarea>
+        </div>
+        <button type="submit" class="submit-btn">Submit Feedback</button>
+      </form>
+    </div>
+
+    <!-- Display User's Previous Feedbacks -->
+    {% if feedbacks and feedbacks|length > 0 %}
+    <div class="feedback-list">
+      <h3>Your Previous Feedbacks</h3>
+      {% for feedback in feedbacks %}
+      <div class="feedback-item">
+        <div class="feedback-content">{{ feedback.content }}</div>
+        <div class="feedback-timestamp">Submitted on: {{ feedback.timestamp }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 </body>
 </html>
