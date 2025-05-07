@@ -182,7 +182,7 @@ body{
   }
   
   .collapsible-form {
-    background-color: rgba(122, 120, 120, 0.384);
+    background-color: rgba(255, 255, 255, 0.05);
     padding: 20px;
     border-radius: 10px;
     margin-bottom: 20px;
@@ -219,3 +219,34 @@ body{
     text-decoration: underline;
   }
   
+
+  .feedback-section {
+    margin-top: 40px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    clear: both;
+    width: 100%;
+  }
+  
+  .feedback-section table {
+    width: 100%;
+    color: white;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  .feedback-section th, .feedback-section td {
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    text-align: left;
+  }
+  
+  .feedback-section th {
+    background-color: rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+  }
+  
+  .feedback-section tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
