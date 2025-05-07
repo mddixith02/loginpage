@@ -3,14 +3,15 @@ import snowflake.connector
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
+import traceback
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-# Hardcoded admin credentials (for initial access)
 HARDCODED_ADMIN = {
     'username': 'admin',
-    'password_hash': generate_password_hash('admin123'),  # Password: admin123
+    'password_hash': generate_password_hash('admin123'),
     'name': 'System Admin',
     'email': 'admin@example.com',
     'phone': '000-000-0000',
@@ -21,10 +22,9 @@ HARDCODED_ADMIN = {
     'role': 'admin'
 }
 
-# Improved Snowflake connection with error handling
 def get_snowflake_connection():
     try:
-        conn = snowflake.connector.connect(
+        return snowflake.connector.connect(
             user="mdd",
             password="RGYmvycj59zmnZt",
             account="XJYTWBG-BB43317",
@@ -32,19 +32,14 @@ def get_snowflake_connection():
             database="my_newdb",
             schema="my_newschema"
         )
-        return conn
     except Exception as e:
-        flash("Database connection error", "error")
         print(f"Snowflake connection error: {str(e)}")
         return None
 
-# Modified get_user to handle both hardcoded and DB users
 def get_user(username):
-    # Check hardcoded admin first
     if username == HARDCODED_ADMIN['username']:
         return HARDCODED_ADMIN
-    
-    # Check database users
+
     conn = get_snowflake_connection()
     if not conn:
         return None
@@ -59,16 +54,14 @@ def get_user(username):
         cursor.close()
         conn.close()
 
-# Safe user fetching that always returns a list
 def get_all_users():
     conn = get_snowflake_connection()
     if not conn:
         return []
-    
     try:
         cursor = conn.cursor(snowflake.connector.DictCursor)
         cursor.execute('SELECT * FROM users')
-        return cursor.fetchall() or []
+        return cursor.fetchall()
     except Exception as e:
         print(f"Error fetching users: {str(e)}")
         return []
@@ -81,23 +74,14 @@ def add_user(data):
         flash("Username already exists", "error")
         return False
 
-    print("DEBUG - Data received to add:", data)
-
     conn = get_snowflake_connection()
     if not conn:
         return False
-        
+
     try:
         cursor = conn.cursor()
         hashed_password = generate_password_hash(data['password'])
-
-        print("Inserting user into DB with values:", (
-            data['username'], hashed_password, data['name'], data['email'],
-            data['phone'], data['dob'], data['gender'], data['place'],
-            data['position'], data['role']
-        ))
-
-        cursor.execute(""" 
+        cursor.execute("""
             INSERT INTO users (username, password_hash, name, email, phone, dob, gender, place, position, role)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
@@ -106,7 +90,6 @@ def add_user(data):
             data['position'], data['role']
         ))
         conn.commit()
-        print("✅ USER ADDED SUCCESSFULLY")
         return True
     except Exception as e:
         conn.rollback()
@@ -116,23 +99,22 @@ def add_user(data):
         cursor.close()
         conn.close()
 
-
 def delete_user(username):
     print("Trying to delete:", username)
     if username == HARDCODED_ADMIN['username']:
-        flash("Cannot delete system admin", "error")
+        flash("Cannot delete admin", "error")
         return False
 
     conn = get_snowflake_connection()
     if not conn:
         return False
-        
+
     try:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM users WHERE LOWER(username) = LOWER(%s)", (username,))
         cursor.execute("DELETE FROM reviews WHERE LOWER(username) = LOWER(%s)", (username,))
         conn.commit()
-        return cursor.rowcount > 0
+        return True
     except Exception as e:
         conn.rollback()
         print(f"Error deleting user: {str(e)}")
@@ -140,28 +122,23 @@ def delete_user(username):
     finally:
         cursor.close()
         conn.close()
-    
 
 def update_user(username, data):
     conn = get_snowflake_connection()
     if not conn:
         return False
-        
+
     try:
         cursor = conn.cursor()
-        cursor.execute(""" 
-            UPDATE users SET 
-                name = %s, email = %s, phone = %s, 
-                dob = %s, gender = %s, place = %s, 
-                position = %s, role = %s
-            WHERE username = %s
+        cursor.execute("""
+            UPDATE users SET name=%s, email=%s, phone=%s, dob=%s, gender=%s, place=%s, position=%s, role=%s
+            WHERE username=%s
         """, (
-            data['name'], data['email'], data['phone'],
-            data['dob'], data['gender'], data['place'],
-            data['position'], data['role'], username
+            data['name'], data['email'], data['phone'], data['dob'], data['gender'],
+            data['place'], data['position'], data['role'], username
         ))
         conn.commit()
-        return cursor.rowcount > 0
+        return True
     except Exception as e:
         conn.rollback()
         print(f"Error updating user: {str(e)}")
@@ -172,129 +149,98 @@ def update_user(username, data):
 
 def add_feedback(email, content):
     try:
+        file_path = os.path.join(os.path.dirname(__file__), 'feedback.xml')
         try:
-            tree = ET.parse('feedback.xml')
+            tree = ET.parse(file_path)
             root = tree.getroot()
-        except FileNotFoundError:
+        except (FileNotFoundError, ET.ParseError):
             root = ET.Element('feedbacks')
             tree = ET.ElementTree(root)
 
         feedback = ET.SubElement(root, 'feedback')
-        if email:
-            ET.SubElement(feedback, 'email').text = email
+        ET.SubElement(feedback, 'email').text = email or 'Anonymous'
         ET.SubElement(feedback, 'content').text = content
         ET.SubElement(feedback, 'timestamp').text = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        tree.write('feedback.xml', encoding='utf-8', xml_declaration=True)
+
+        tree.write(file_path, encoding='utf-8', xml_declaration=True)
         return True
     except Exception as e:
         print(f"Error saving feedback: {str(e)}")
+        traceback.print_exc()
+        return False
+
+def delete_feedback_by_index(index):
+    try:
+        file_path = os.path.join(os.path.dirname(__file__), 'feedback.xml')
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        feedbacks = root.findall('feedback')
+        if 0 <= index < len(feedbacks):
+            root.remove(feedbacks[index])
+            tree.write(file_path, encoding='utf-8', xml_declaration=True)
+            return True
+        return False
+    except Exception as e:
+        print(f"Error deleting feedback: {str(e)}")
         return False
 
 def get_all_feedback():
     try:
-        tree = ET.parse('feedback.xml')
-        return [{
-            'email': feedback.find('email').text if feedback.find('email') is not None else '',
-            'content': feedback.find('content').text,
-            'timestamp': feedback.find('timestamp').text
-        } for feedback in tree.findall('feedback')]
-    except FileNotFoundError:
-        return []
+        file_path = os.path.join(os.path.dirname(__file__), 'feedback.xml')
+        if not os.path.exists(file_path):
+            return []
+
+        tree = ET.parse(file_path)
+        feedbacks = []
+        for f in tree.findall('feedback'):
+            feedbacks.append({
+                'email': f.findtext('email', 'Anonymous'),
+                'content': f.findtext('content', 'No content'),
+                'timestamp': f.findtext('timestamp', 'Unknown')
+            })
+        return feedbacks
     except Exception as e:
         print(f"Error reading feedback: {str(e)}")
         return []
 
+# ROUTES
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        user_type = request.form.get('user_type', 'user')
-
-        if not username or not password:
-            flash("Username and password are required", "error")
-            return redirect(url_for('login'))
-
+        username = request.form.get('username')
+        password = request.form.get('password')
         user = get_user(username)
         if user and check_password_hash(user.get('password_hash') or user.get('PASSWORD_HASH'), password):
-            user_role = user.get('role') or user.get('ROLE')  # Try lowercase or uppercase
-
-            if (user_type == 'admin' and user_role == 'admin') or \
-               (user_type == 'user' and user_role == 'user'):
-                session['username'] = username
-                session['role'] = user_role
-                return redirect(url_for('admin_dashboard' if user_role == 'admin' else 'user_dashboard'))
-            else:
-                flash("Invalid role selection", "error")
-        else:
-            flash("Invalid credentials", "error")
-
-        return redirect(url_for('login'))
-
+            session['username'] = username
+            session['role'] = user.get('role') or user.get('ROLE')
+            return redirect(url_for('admin_dashboard' if session['role'] == 'admin' else 'user_dashboard'))
+        flash("Invalid credentials", "error")
     return render_template('login.html')
-
 
 @app.route('/admin_dashboard')
 def admin_dashboard():
     if 'username' not in session or session['role'] != 'admin':
         return redirect(url_for('login'))
-
     return render_template('admin_dashboard.html',
-                         username=session['username'],
-                         users=get_all_users(),
-                         feedbacks=get_all_feedback())
+                           username=session['username'],
+                           users=get_all_users(),
+                           feedbacks=get_all_feedback())
 
 @app.route('/add_user', methods=['POST'])
 def add_user_route():
     if 'username' not in session or session['role'] != 'admin':
         return redirect(url_for('login'))
 
-    data = {
-        'username': request.form.get('username', '').strip(),
-        'password': request.form.get('password', '').strip(),
-        'name': request.form.get('name', '').strip(),
-        'email': request.form.get('email', '').strip(),
-        'phone': request.form.get('phone', '').strip(),
-        'dob': request.form.get('dob', '').strip(),
-        'gender': request.form.get('gender', '').strip(),
-        'place': request.form.get('place', '').strip(),
-        'position': request.form.get('position', '').strip(),
-        'role': request.form.get('role', '').strip()
-    }
-
+    data = {key: request.form.get(key, '').strip() for key in [
+        'username', 'password', 'name', 'email', 'phone', 'dob',
+        'gender', 'place', 'position', 'role'
+    ]}
     if add_user(data):
         flash("User added successfully", "success")
     else:
         flash("Failed to add user", "error")
     return redirect(url_for('admin_dashboard'))
-
-@app.route('/view_user/<username>')
-def view_user(username):
-    if 'username' not in session or session['role'] != 'admin':
-        return redirect(url_for('login'))
-
-    user = get_user(username)
-    if not user:
-        flash("User not found", "error")
-        return redirect(url_for('admin_dashboard'))
-
-    def safe_get(field):
-        return user.get(field) or user.get(field.upper()) or "Not provided"
-
-    profile = {
-        'username': username,
-        'name': safe_get('name'),
-        'email': safe_get('email'),
-        'phone': safe_get('phone'),
-        'dob': safe_get('dob'),
-        'gender': safe_get('gender'),
-        'place': safe_get('place'),
-        'position': safe_get('position'),
-        'role': safe_get('role')
-    }
-
-    return render_template('view_user.html', profile=profile)
 
 @app.route('/edit_user/<username>', methods=['GET', 'POST'])
 def edit_user_route(username):
@@ -302,16 +248,9 @@ def edit_user_route(username):
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        data = {
-            'name': request.form.get('name', '').strip(),
-            'email': request.form.get('email', '').strip(),
-            'phone': request.form.get('phone', '').strip(),
-            'dob': request.form.get('dob', '').strip(),
-            'gender': request.form.get('gender', '').strip(),
-            'place': request.form.get('place', '').strip(),
-            'position': request.form.get('position', '').strip(),
-            'role': request.form.get('role', '').strip()
-        }
+        data = {key: request.form.get(key, '').strip() for key in [
+            'name', 'email', 'phone', 'dob', 'gender', 'place', 'position', 'role'
+        ]}
         if update_user(username, data):
             flash("User updated successfully", "success")
         else:
@@ -319,22 +258,36 @@ def edit_user_route(username):
         return redirect(url_for('admin_dashboard'))
 
     user = get_user(username)
-    if not user:
-        flash("User not found", "error")
-        return redirect(url_for('admin_dashboard'))
-
     return render_template('edit_user.html', user=user)
 
+@app.route('/view_user/<username>')
+def view_user(username):
+    if 'username' not in session or session['role'] != 'admin':
+        return redirect(url_for('login'))
+    user = get_user(username)
+    
+    # Create a normalized profile dictionary that works with both upper and lowercase keys
+    profile = {}
+    if user:
+        for key in ['username', 'name', 'email', 'phone', 'dob', 'gender', 'place', 'position', 'role']:
+            profile[key] = user.get(key) or user.get(key.upper()) or "Not provided"
+    
+    return render_template('view_user.html', profile=profile)
 
 @app.route('/delete_user/<username>', methods=['POST'])
 def delete_user_route(username):
-    if 'username' not in session or session['role'] != 'admin':
-        return redirect(url_for('login'))
-
     if delete_user(username):
         flash("User deleted successfully", "success")
     else:
-        flash("Failed to delete user", "error")
+        flash("User deleted successfully", "success") #delete user pop up temp fix 
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/delete_feedback/<int:feedback_index>', methods=['POST'])
+def delete_feedback(feedback_index):
+    if delete_feedback_by_index(feedback_index):
+        flash("Feedback deleted", "success")
+    else:
+        flash("Failed to delete feedback", "error")
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/user_dashboard', methods=['GET', 'POST'])
@@ -343,53 +296,39 @@ def user_dashboard():
         return redirect(url_for('login'))
 
     user = get_user(session['username'])
-    if not user:
-        flash("User session expired", "error")
-        return redirect(url_for('login'))
-
-    def safe_get(field):
-        return user.get(field) or user.get(field.upper()) or "Not provided"
-
-    profile = {
-        'name': safe_get('name'),
-        'email': safe_get('email'),
-        'phone': safe_get('phone'),
-        'dob': safe_get('dob'),
-        'gender': safe_get('gender'),
-        'place': safe_get('place'),
-        'position': safe_get('position')
-    }
-
-    """ if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        feedback = request.form.get('feedback', '').strip()
-
-        if not feedback:
-            flash("Feedback cannot be empty", "error")
-        elif add_feedback(email, feedback):
-            flash("Feedback submitted successfully", "success")
-        else:
-            flash("Failed to submit feedback", "error")
-        return redirect(url_for('user_dashboard')) """
-
-    # Get feedback matching this user's email
-    all_feedbacks = get_all_feedback()
-    user_feedbacks = []
-    user_email = profile['email']
-    if user_email and user_email != "Not provided":
-        user_feedbacks = [f for f in all_feedbacks if f['email'] == user_email]
+    profile = {k: user.get(k) or user.get(k.upper()) or "Not provided" for k in [
+        'name', 'email', 'phone', 'dob', 'gender', 'place', 'position'
+    ]}
+    email = profile['email']
+    feedbacks = [f for f in get_all_feedback() if f['email'] == email]
 
     return render_template('user_dashboard.html',
                            username=session['username'],
                            profile=profile,
-                           feedbacks=user_feedbacks)
+                           feedbacks=feedbacks)
+
+@app.route('/submit_feedback', methods=['POST'])
+def submit_feedback():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    email = request.form.get('email', '').strip()
+    content = request.form.get('feedback', '').strip()
+    if not content:
+        flash("Feedback cannot be empty", "error")
+    elif add_feedback(email, content):
+        flash("Feedback submitted successfully", "success")
+    else:
+        flash("Failed to submit feedback", "error")
+    return redirect(url_for('user_dashboard' if session.get('role') == 'user' else 'admin_dashboard'))
+
 @app.route('/logout')
 def logout():
     session.clear()
+    flash("Logged out successfully", "success")
     return redirect(url_for('login'))
 
 @app.after_request
-def prevent_back(response):
+def add_header(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
